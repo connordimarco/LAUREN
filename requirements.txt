@@ -1,0 +1,12 @@
+geopack==1.0.13
+joblib==1.5.3
+lightgbm==4.7.0
+narwhals==2.24.0
+numpy==1.26.4
+pandas==3.0.5
+pyarrow==25.0.1
+python-dateutil==2.9.0.post0
+scikit-learn==1.3.2
+scipy==1.17.1
+six==1.17.0
+threadpoolctl==3.6.0

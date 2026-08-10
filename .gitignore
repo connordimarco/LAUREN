@@ -1,0 +1,16 @@
+# realtime feeds & products
+realtime-geodgp/
+realtime-midl
+realtime-aual/
+realtime-f107/
+# runtime state
+grid_archive/
+cache/
+state/
+logs/
+# environment & artifacts
+venv/
+models/
+__pycache__/
+CLAUDE.md
+dev/
