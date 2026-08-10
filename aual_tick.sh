@@ -37,7 +37,10 @@ KEY="$HOME/.ssh/id_ed25519_sword_aual"
 FLAG="$ROOT/state/sword_push_enabled"
 if [ -f "$FLAG" ] && [ -f "$KEY" ] && [ -f "$ROOT/realtime-aual/aual.dat" ]; then
     RSH="ssh -i $KEY -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new"
-    err=$(nice timeout -k 5 45 rsync -a --delete --timeout=30 -e "$RSH" \
+    # --exclude protects SWORD's adapter output (gitm_aual.dat, written
+    # next to ours for inspection) from this push's --delete
+    err=$(nice timeout -k 5 45 rsync -a --delete --exclude='gitm_aual.dat' \
+            --timeout=30 -e "$RSH" \
             "$ROOT/realtime-aual" \
             "cdimarco@csrsvr2024-0246.engin.umich.edu:/" 2>&1 >/dev/null) \
         || echo "$(date -u +%FT%TZ) PUSH-FAIL $(printf '%s\n' "$err" | grep -v '^\*' | grep -v '^$' | tail -1)" \
