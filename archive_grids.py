@@ -21,7 +21,9 @@ import swmf_datafile as swmf
 SRC = Path("/data/tuija/cdimarco/LAUREN/realtime-geodgp")
 DST = Path(__file__).resolve().parent / "grid_archive"
 LAT_MIN = 30.0
-RETENTION_DAYS = 45
+RETENTION_DAYS = 1     # short working buffer; grids are reproducible on
+                       # Pleiades from MIDL (realtime L1 ~= definitive), so
+                       # only aual events + groundmag dumps archive forever
 
 
 def archive_one(path, dst_root):

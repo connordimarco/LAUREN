@@ -233,6 +233,31 @@ def render_pdf(latencies, averages, now, n_runs):
     tmp.replace(PDF_OUT)
 
 
+def _archive_dump(body, now):
+    """Permanent as-received archive of every dump (decided 2026-08-10):
+    each minute's groundmag_h.json gzipped into a daily uncompressed tar
+    (archive/groundmag/groundmag_YYYYMMDD.tar), so future models can be
+    trained on the EXACT realtime latency and data distributions —
+    including GIN backfills/revisions, which per-minute snapshots capture
+    and a final archive cannot. Never pruned; never allowed to break the
+    live products."""
+    try:
+        import gzip
+        import io
+        import tarfile
+        day_dir = HERE / "archive" / "groundmag"
+        day_dir.mkdir(parents=True, exist_ok=True)
+        payload = gzip.compress(body.encode(), 6)
+        with tarfile.open(day_dir / f"groundmag_{now:%Y%m%d}.tar", "a") as tf:
+            info = tarfile.TarInfo(f"groundmag_{now:%Y%m%dT%H%M%S}.json.gz")
+            info.size = len(payload)
+            import calendar
+            info.mtime = calendar.timegm(now.timetuple())
+            tf.addfile(info, io.BytesIO(payload))
+    except Exception:
+        pass
+
+
 def main():
     now = datetime.utcnow()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -267,9 +292,11 @@ def main():
     doc = {"generated_utc": now.strftime("%Y-%m-%dT%H:%M:%S"),
            "window_start": t0.strftime("%Y-%m-%dT%H:%M"),
            "cadence_min": 1, "stations": stations_doc}
+    body = json.dumps(doc)
     tmp = JSON_OUT.with_suffix(".tmp")
-    tmp.write_text(json.dumps(doc))
+    tmp.write_text(body)
     tmp.replace(JSON_OUT)
+    _archive_dump(body, now)
 
     # rolling 45-day H store for the corrector's station features (quiet-day
     # baselines need weeks of history); never let it break the health product

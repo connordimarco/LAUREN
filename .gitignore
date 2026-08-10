@@ -6,6 +6,7 @@ realtime-f107/
 realtime-groundmag/
 # runtime state
 grid_archive/
+archive/
 cache/
 state/
 logs/

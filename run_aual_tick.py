@@ -7,8 +7,8 @@ write realtime-aual/aual.dat (columns: year mo dy hr mn sc AU AL, nT;
 rolling 24 h window incl. future-valid rows up to the SW frontier).
 
 Idempotent micro-batch: a skipped or killed tick costs nothing but
-latency. Model absent => archives only and logs 'no-model'. Run via
-aual_tick.sh (flock + timeout); NOT in crontab until switched on.
+latency. Model absent => archives only and logs 'no-model'. Runs from
+cron every minute via dev/aual_tick.sh (flock + timeout).
 """
 import json
 import sys
@@ -29,6 +29,7 @@ MODEL = ROOT / "models" / "corrector_grid_2deg_v01.joblib"
 STORE = ROOT / "state" / "predictions.csv"
 OUT = ROOT / "realtime-aual" / "aual.dat"
 LOGS = ROOT / "logs"
+ARCHIVE = ROOT / "archive" / "aual"
 
 BACKFILL_H = 6          # how far back an opening tick will predict
 STORE_KEEP_H = 36 * 24  # feeds the website's 35 d view (+ slack)
@@ -79,6 +80,26 @@ def prune_logs():
 
 def archive_one(path):
     return archive_grids.archive_one(path, ROOT / "grid_archive")
+
+
+def archive_events(events, now):
+    """Permanent append-only ledger of every prediction EVENT (decided
+    2026-08-10): one row per (predicted_at, valid_time) — re-predictions
+    of the same valid time appear again, preserving the revision/lead
+    structure for future training and lead-dependent skill studies.
+    ~100 MB/year; never pruned."""
+    if not events:
+        return
+    ARCHIVE.mkdir(parents=True, exist_ok=True)
+    path = ARCHIVE / f"aual_events_{now.strftime('%Y%m')}.csv"
+    new = not path.exists()
+    with open(path, "a") as fh:
+        if new:
+            fh.write("predicted_at,valid_time,AU,AL\n")
+        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
+        for t, au, al in events:
+            fh.write(f"{ts},{t.strftime('%Y-%m-%dT%H:%M:%S')},"
+                     f"{au:.1f},{al:.1f}\n")
 
 
 def load_store():
@@ -153,6 +174,7 @@ def run(now, summary):
             if t >= now - pd.Timedelta(hours=BACKFILL_H)
             and (t not in store.index or m > store.loc[t, "src_mtime"] + 0.5)]
     predicted = 0
+    events = []
     if todo:
         from build_features_rt import build_rows
         feats = build_rows(todo)
@@ -190,7 +212,9 @@ def run(now, summary):
             au, al = c.predict(grids[t][0], row)
             store.loc[t, ["AU", "AL", "src_mtime", "predicted_at"]] = \
                 [au, al, grids[t][1], now.strftime("%Y-%m-%dT%H:%M:%S")]
+            events.append((t, au, al))
             predicted += 1
+    archive_events(events, now)
     store = store.loc[store.index >= now - pd.Timedelta(hours=STORE_KEEP_H)]
     save_store(store)
     n_out = write_aual(store, now)
