@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AU/AL corrector per-minute tick wrapper.
 #
-# NOT YET IN CRONTAB — the service is switched on together with Connor
+# NOT YET IN CRONTAB — the service is switched on manually by me
 # once scoped. To enable:
 #   * * * * * bash /data/tuija/cdimarco/LAUREN/aual_tick.sh >> /data/tuija/cdimarco/LAUREN/logs/cron_tick.log 2>&1
 #

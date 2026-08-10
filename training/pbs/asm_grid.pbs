@@ -1,0 +1,10 @@
+#PBS -N geodgp_asmgrid
+#PBS -l select=1:ncpus=40:model=cas_ait
+#PBS -l walltime=03:00:00
+#PBS -q normal
+#PBS -W group_list=s3007
+#PBS -j oe
+cd $PBS_O_WORKDIR
+source env-nas/bin/activate
+python assemble_grid_year.py --year $YEAR > logs/asmgrid_${YEAR}.log 2>&1
+echo ASMGRID $YEAR EXIT $? >> logs/asmgrid_${YEAR}.log

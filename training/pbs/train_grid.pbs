@@ -1,0 +1,11 @@
+#PBS -N geodgp_traingrid
+#PBS -l select=1:ncpus=128:model=rom_ait
+#PBS -l walltime=24:00:00
+#PBS -q long
+#PBS -W group_list=s3007
+#PBS -j oe
+cd $PBS_O_WORKDIR
+export SLURM_CPUS_PER_TASK=64
+source env-nas/bin/activate
+python train_grid_prospective.py > logs/train_grid.log 2>&1
+echo TRAINGRID EXIT $? >> logs/train_grid.log

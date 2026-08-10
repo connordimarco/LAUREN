@@ -1,0 +1,11 @@
+#PBS -N geodgp_bench
+#PBS -l select=1:ncpus=128:model=rom_ait
+#PBS -l walltime=00:30:00
+#PBS -q devel
+#PBS -W group_list=s3007
+#PBS -j oe
+cd $PBS_O_WORKDIR
+export SLURM_CPUS_PER_TASK=64
+source env-nas/bin/activate
+python hist_grid.py --year 2024 --month 5 --day 10 --limit 64 > logs/bench5_${PBS_JOBID%%.*}.log 2>&1
+echo BENCH EXIT $? >> logs/bench5_${PBS_JOBID%%.*}.log
