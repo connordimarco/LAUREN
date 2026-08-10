@@ -47,7 +47,7 @@ DETAIL_FILE = STATE / 'watchdog_last_detail.txt'
 WD_LOG = LOGS / 'watchdog.log'
 NOTIFY = Path('/data/tuija/cdimarco/notify/send_refresh_email.py')
 PY = str(ROOT / 'venv' / 'bin' / 'python')
-MAIL_FROM = 'LAUREN <lauren@connordimarco.com>'
+MAIL_FROM = 'Realtime <realtime@connordimarco.com>'
 # the relay publishes our website views; its retry marker lives in MIDL state
 MIDL_STATE = Path('/data/tuija/cdimarco/MIDL/realtime/state')
 MIDL_LOGS = Path('/data/tuija/cdimarco/MIDL/realtime/logs')
