@@ -10,6 +10,7 @@ Idempotent micro-batch: a skipped or killed tick costs nothing but
 latency. Model absent => archives only and logs 'no-model'. Run via
 aual_tick.sh (flock + timeout); NOT in crontab until switched on.
 """
+import json
 import sys
 import time
 import traceback
@@ -30,7 +31,7 @@ OUT = ROOT / "realtime-aual" / "aual.dat"
 LOGS = ROOT / "logs"
 
 BACKFILL_H = 6          # how far back an opening tick will predict
-STORE_KEEP_H = 48
+STORE_KEEP_H = 36 * 24  # feeds the website's 35 d view (+ slack)
 OUT_WINDOW_H = 24
 
 
@@ -109,6 +110,29 @@ def write_aual(df, now):
     return len(keep)
 
 
+# Website JSON views (SWORD-Web products.js laurenDraw contract):
+# {generated_utc, t[], au[], al[]} — rows with t > generated_utc are drawn
+# as the forecast. Long windows are resampled to keep payloads small.
+VIEWS = (("last_24h.json", pd.Timedelta(hours=24), None),
+         ("last_7d.json", pd.Timedelta(days=7), "5min"),
+         ("last_35d.json", pd.Timedelta(days=35), "15min"))
+
+
+def write_views(df, now):
+    stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    for name, span, rule in VIEWS:
+        keep = df.loc[df.index >= now - span, ["AU", "AL"]].sort_index()
+        if rule:
+            keep = keep.resample(rule).mean().dropna()
+        doc = {"generated_utc": stamp,
+               "t": [t.strftime("%Y-%m-%dT%H:%M:%SZ") for t in keep.index],
+               "au": [round(v, 1) for v in keep["AU"]],
+               "al": [round(v, 1) for v in keep["AL"]]}
+        tmp = OUT.parent / (name + ".tmp")
+        tmp.write_text(json.dumps(doc))
+        tmp.replace(OUT.parent / name)
+
+
 def run(now, summary):
     grids = scan_grids()
     summary.append(f"grids={len(grids)}")
@@ -146,6 +170,7 @@ def run(now, summary):
     store = store.loc[store.index >= now - pd.Timedelta(hours=STORE_KEEP_H)]
     save_store(store)
     n_out = write_aual(store, now)
+    write_views(store, now)
     summary.append(f"predicted={predicted} pending={len(todo) - predicted} "
                    f"rows={n_out}")
 
