@@ -3,9 +3,8 @@
 
 scan realtime-geodgp -> archive new grids -> build features for new or
 updated valid times -> predict -> maintain state/predictions.csv ->
-write realtime-aual/aual_sme.dat (SME format: year mo dy hr mn sc AE AL AU,
-AE = AU - AL, rolling 24 h window incl. future-valid rows up to the SW
-frontier).
+write realtime-aual/aual.dat (columns: year mo dy hr mn sc AU AL, nT;
+rolling 24 h window incl. future-valid rows up to the SW frontier).
 
 Idempotent micro-batch: a skipped or killed tick costs nothing but
 latency. Model absent => archives only and logs 'no-model'. Run via
@@ -27,12 +26,12 @@ ROOT = Path(__file__).resolve().parent
 GRIDS = ROOT / "realtime-geodgp"
 MODEL = ROOT / "models" / "corrector_grid_2deg_v01.joblib"
 STORE = ROOT / "state" / "predictions.csv"
-OUT = ROOT / "realtime-aual" / "aual_sme.dat"
+OUT = ROOT / "realtime-aual" / "aual.dat"
 LOGS = ROOT / "logs"
 
 BACKFILL_H = 6          # how far back an opening tick will predict
 STORE_KEEP_H = 48
-SME_WINDOW_H = 24
+OUT_WINDOW_H = 24
 
 
 def scan_grids():
@@ -48,6 +47,9 @@ def scan_grids():
     return out
 
 
+LOG_KEEP_MONTHS = 6
+
+
 def archive_new(grids, summary):
     n, bad = 0, 0
     for path, _ in grids.values():
@@ -56,7 +58,22 @@ def archive_new(grids, summary):
         except Exception:
             bad += 1                       # one bad file never blocks
     archive_grids.prune(ROOT / "grid_archive", archive_grids.RETENTION_DAYS)
+    prune_logs()
     summary.append(f"archived={n}" + (f" bad={bad}" if bad else ""))
+
+
+def prune_logs():
+    """Monthly log files (tick_YYYYMM.log, push_YYYYMM.log) never rotate on
+    their own — drop them after LOG_KEEP_MONTHS so logs/ stays bounded."""
+    now = datetime.now(timezone.utc)
+    cutoff = (now.year * 12 + now.month - 1 - LOG_KEEP_MONTHS)
+    for f in LOGS.glob("*_2?????.log"):
+        try:
+            ym = int(f.stem.rsplit("_", 1)[1])
+            if (ym // 100) * 12 + (ym % 100) - 1 < cutoff:
+                f.unlink()
+        except (ValueError, OSError):
+            continue
 
 
 def archive_one(path):
@@ -78,17 +95,16 @@ def save_store(df):
     tmp.replace(STORE)
 
 
-def write_sme(df, now):
-    keep = df.loc[df.index >= now - pd.Timedelta(hours=SME_WINDOW_H)]
+def write_aual(df, now):
+    keep = df.loc[df.index >= now - pd.Timedelta(hours=OUT_WINDOW_H)]
     keep = keep.sort_index()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     tmp = OUT.with_suffix(".tmp")
     with open(tmp, "w") as fh:
         for t, r in keep.iterrows():
-            ae = r.AU - r.AL
             fh.write(f"{t.year:4d} {t.month:2d} {t.day:2d} {t.hour:2d} "
                      f"{t.minute:2d} {t.second:2d} "
-                     f"{ae:8.1f} {r.AL:8.1f} {r.AU:8.1f}\n")
+                     f"{r.AU:8.1f} {r.AL:8.1f}\n")
     tmp.replace(OUT)
     return len(keep)
 
@@ -129,9 +145,9 @@ def run(now, summary):
             predicted += 1
     store = store.loc[store.index >= now - pd.Timedelta(hours=STORE_KEEP_H)]
     save_store(store)
-    n_sme = write_sme(store, now)
+    n_out = write_aual(store, now)
     summary.append(f"predicted={predicted} pending={len(todo) - predicted} "
-                   f"sme_rows={n_sme}")
+                   f"rows={n_out}")
 
 
 def main():

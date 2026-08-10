@@ -23,9 +23,10 @@ sleep 15
 cd "$ROOT"
 nice timeout -k 10 150 venv/bin/python run_aual_tick.py >/dev/null
 
-# ---- push products to SWORD:/data/Gitm/cdimarco/LAUREN ----------------------
-# Ships realtime-aual/ (SME file for fta_live) and realtime-f107/ (replaces
-# SWORD's own SWPC F10.7 fetch cron) as matching subdirs of the jail root.
+# ---- push the SME product to SWORD:/data/Gitm/cdimarco/LAUREN ---------------
+# realtime-aual/ only: realtime-midl/ and realtime-f107/ ship via the MIDL
+# relay (realtime_sword_push.sh), which runs per minute with or without
+# this tick — one transport owner per product.
 # DORMANT until state/sword_push_enabled exists AND the dedicated key is
 # installed. The SWORD side needs a write-only rrsync jail chrooted to
 # /data/Gitm/cdimarco/LAUREN (mirror image of this box's realtime-geodgp
@@ -34,10 +35,10 @@ nice timeout -k 10 150 venv/bin/python run_aual_tick.py >/dev/null
 # Non-fatal: a dead push leaves a stale SWORD copy and one log line.
 KEY="$HOME/.ssh/id_ed25519_sword_aual"
 FLAG="$ROOT/state/sword_push_enabled"
-if [ -f "$FLAG" ] && [ -f "$KEY" ] && [ -f "$ROOT/realtime-aual/aual_sme.dat" ]; then
+if [ -f "$FLAG" ] && [ -f "$KEY" ] && [ -f "$ROOT/realtime-aual/aual.dat" ]; then
     RSH="ssh -i $KEY -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new"
-    err=$(nice timeout -k 5 45 rsync -a --timeout=30 -e "$RSH" \
-            "$ROOT/realtime-aual" "$ROOT/realtime-f107" \
+    err=$(nice timeout -k 5 45 rsync -a --delete --timeout=30 -e "$RSH" \
+            "$ROOT/realtime-aual" \
             "cdimarco@csrsvr2024-0246.engin.umich.edu:/" 2>&1 >/dev/null) \
         || echo "$(date -u +%FT%TZ) PUSH-FAIL $(printf '%s\n' "$err" | grep -v '^\*' | grep -v '^$' | tail -1)" \
             >> "$ROOT/logs/push_$(date -u +%Y%m).log"
