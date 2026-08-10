@@ -157,12 +157,36 @@ def run(now, summary):
         from build_features_rt import build_rows
         feats = build_rows(todo)
         c = Corrector(MODEL)
-        # NaN for every model column we don't supply: station features
-        # (NaN-tolerant by design) and strays like the 0-split 'Datetime'
+        # NaN for every model column we don't supply, then overlay live
+        # station features from the groundmag store (per-station NaN =
+        # station dark — the model tolerates that, as in training) and the
+        # exact time encodings. Station build failure is non-fatal: the
+        # tick degrades to the NaN-station configuration.
         extra = [col for _, col in c.other_cols if col not in feats.columns]
+        sfeats = None
+        if len(feats):
+            try:
+                from fetch_groundmag_rt import STATIONS as SF_COORDS
+                from station_features_rt import build as sf_build
+                from station_features_rt import model_stations
+                sfeats = sf_build(
+                    feats.index,
+                    model_stations([col for _, col in c.other_cols]),
+                    SF_COORDS)
+            except Exception:
+                summary.append("stations-fail")
         for t in feats.index:
             row = feats.loc[t].to_dict()
             row.update(dict.fromkeys(extra, np.nan))
+            if sfeats is not None:
+                row.update(sfeats.loc[t].to_dict())
+            # time encodings, verbatim from the training matrix assembler
+            # (assemble_year.py): minute-of-day/1440, dayofyear/365.25
+            mod = t.hour * 60 + t.minute
+            row["ut_sin"] = np.sin(2 * np.pi * mod / 1440)
+            row["ut_cos"] = np.cos(2 * np.pi * mod / 1440)
+            row["doy_sin"] = np.sin(2 * np.pi * t.dayofyear / 365.25)
+            row["doy_cos"] = np.cos(2 * np.pi * t.dayofyear / 365.25)
             au, al = c.predict(grids[t][0], row)
             store.loc[t, ["AU", "AL", "src_mtime", "predicted_at"]] = \
                 [au, al, grids[t][1], now.strftime("%Y-%m-%dT%H:%M:%S")]

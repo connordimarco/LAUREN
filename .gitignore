@@ -3,6 +3,7 @@ realtime-geodgp/
 realtime-midl
 realtime-aual/
 realtime-f107/
+realtime-groundmag/
 # runtime state
 grid_archive/
 cache/

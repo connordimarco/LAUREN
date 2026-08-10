@@ -10,3 +10,9 @@ scikit-learn==1.3.2
 scipy==1.17.1
 six==1.17.0
 threadpoolctl==3.6.0
+# --- realtime additions (not part of the Pleiades training pins) ---
+matplotlib==3.11.1
+# aacgmv2 needs Python.h to build; this box's system python3.11 lacks it —
+# build the wheel with the conda python then `pip install --no-deps` it:
+#   /data/tuija/cdimarco/conda/envs/midl_env/bin/pip wheel aacgmv2 -w /tmp/w
+aacgmv2==2.7.1
