@@ -21,7 +21,7 @@ import pandas as pd
 CACHE = Path(__file__).resolve().parent / "cache" / "dst"
 BASE = "https://wdc.kugi.kyoto-u.ac.jp/dst_realtime/{ym}/dst{ym2}.for.request"
 UA = {"User-Agent":
-      "GITM-RT research (University of Michigan; connordimarco@gmail.com)"}
+      "GITM-RT research (University of Michigan; cdimarco@umich.edu)"}
 CURRENT_MONTH_TTL_S = 20 * 60
 
 

@@ -21,9 +21,9 @@ forecast (~1 h, shrinking with wind speed).
 | `validate_model.py` | acceptance checks for any new model file |
 | `build_features_rt.py`, `fetch_*_rt.py` | realtime feature assembly |
 | `reference_geodgp_common.py` | golden-tested hindcast feature builder the realtime path must match |
-| `run_aual_tick.py`, `aual_tick.sh` | the per-minute service |
+| `run_aual_tick.py` | the per-minute service |
 | `archive_grids.py`, `grid_archive/` | 45-day ΔB grid archive for retraining/validation |
-| `docs/` | Pleiades handoff + prospective skill evidence |
+| `training/` | model training pipeline (GeoDGP rerun features → LightGBM corrector) |
 
 ## Setup
 

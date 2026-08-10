@@ -41,7 +41,7 @@ TTL_S = 3 * 3600
 TTL_HIST_S = 12 * 3600
 DAILY_DEPTH = 90
 UA = {"User-Agent":
-      "GITM-RT research (University of Michigan; connordimarco@gmail.com)"}
+      "GITM-RT research (University of Michigan; cdimarco@umich.edu)"}
 # timeseries first (explicit time_tags), single-value summary as fallback
 URLS = ("https://services.swpc.noaa.gov/json/f107_cm_flux.json",
         "https://services.swpc.noaa.gov/products/summary/10cm-flux.json")
