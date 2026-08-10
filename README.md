@@ -39,3 +39,4 @@ and 12 hourly Dst differences.
 | `run_aual_tick.py` | the per-minute service |
 | `archive_grids.py`, `grid_archive/` | short ΔB grid working buffer (grids are reproducible from archived MIDL) |
 | `training/` | model training pipeline (GeoDGP rerun features → LightGBM corrector) |
+| `archive/` | permanent as-received record: every prediction event + every ground-mag dump (for training future models on true realtime data/age distributions) |
