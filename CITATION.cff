@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "LAUREN: Lower And Upper Real-time Electrojet iNdices"
+type: software
+authors:
+  - family-names: DiMarco
+    given-names: Connor C.
+    orcid: https://orcid.org/0000-0003-0706-4309
+    affiliation: University of Michigan
+abstract: >-
+  A machine-learning corrector that turns GeoDGP real-time ground magnetic
+  perturbation predictions into Kyoto-style AU and AL auroral electrojet
+  indices in real time, including a short-range forecast from the L1
+  solar-wind transit lead. Trained on 20 years (2005-2022) of GeoDGP reruns
+  driven by MIDL solar wind; validated fully prospectively on 2023-2024.
+keywords:
+  - space weather
+  - auroral electrojet
+  - AU index
+  - AL index
+  - machine learning
+  - real-time forecasting
+version: 0.1.0
+date-released: 2026-08-10
+license: MIT
+repository-code: https://github.com/connordimarco/LAUREN
