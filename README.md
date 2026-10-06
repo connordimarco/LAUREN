@@ -37,6 +37,7 @@ and 12 hourly Dst differences.
 | `build_features_rt.py`, `fetch_*_rt.py` | realtime feature assembly |
 | `reference_geodgp_common.py` | golden-tested hindcast feature builder the realtime path must match |
 | `run_aual_tick.py` | the per-minute service |
+| `fetch_kyoto_aual_rt.py` | daily fetch of the observed (Kyoto quicklook) AU/AL + live validation products |
 | `archive_grids.py`, `grid_archive/` | short ΔB grid working buffer (grids are reproducible from archived MIDL) |
 | `training/` | model training pipeline (GeoDGP rerun features → LightGBM corrector) |
 | `archive/` | permanent as-received record: every prediction event + every ground-mag dump (for training future models on true realtime data/age distributions) |

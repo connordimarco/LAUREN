@@ -35,6 +35,16 @@ BACKFILL_H = 6          # how far back an opening tick will predict
 STORE_KEEP_H = 36 * 24  # feeds the website's 35 d view (+ slack)
 OUT_WINDOW_H = 24
 
+# GeoDGP's realtime exporter stamps each grid file +60 min ahead of the
+# wind that drove it (SWORD realt_deltaB_export_ACE.py:412, confirmed
+# 2026-08-31: filename time = wind-valid time + 60, a persistence-forecast
+# label). Training grids (Pleiades reruns) are stamped AT wind-valid time,
+# so ingest subtracts the offset to restore the training convention.
+# If ajivani ever drops the +60, DELETE this correction — the symptom
+# would be LAUREN running ~60 min early and aual.dat's frontier lead
+# collapsing toward zero.
+GEODGP_STAMP_OFFSET = pd.Timedelta(minutes=60)
+
 
 def scan_grids():
     """{valid_time: (path, mtime)} for every grid file currently landed."""
@@ -42,7 +52,8 @@ def scan_grids():
     for p in GRIDS.glob("deltaB_*_real4.out"):
         try:
             t = pd.Timestamp(datetime.strptime(p.name.split("_")[1],
-                                               "%Y%m%d%H%M%S"))
+                                               "%Y%m%d%H%M%S")) \
+                - GEODGP_STAMP_OFFSET
             out[t] = (p, p.stat().st_mtime)
         except (ValueError, OSError):
             continue
@@ -131,24 +142,30 @@ def write_aual(df, now):
     return len(keep)
 
 
-# Website JSON views (SWORD-Web products.js laurenDraw contract):
-# {generated_utc, t[], au[], al[]} — rows with t > generated_utc are drawn
-# as the forecast. Long windows are resampled to keep payloads small.
-VIEWS = (("last_24h.json", pd.Timedelta(hours=24), None),
-         ("last_7d.json", pd.Timedelta(days=7), "5min"),
-         ("last_35d.json", pd.Timedelta(days=35), "15min"))
+# Website JSON views (SWORD-Web products.js contract). last_full.json is
+# the live one: full 1-min resolution over 35 d, epoch-ms tms[] to keep
+# the payload compact (~1.5 MB; the client decimates to the visible
+# window). The resampled t[] trio stays for cached older page JS. Rows
+# with time > generated_utc are drawn as the forecast.
+VIEWS = (("last_24h.json", pd.Timedelta(hours=24), None, False),
+         ("last_7d.json", pd.Timedelta(days=7), "5min", False),
+         ("last_35d.json", pd.Timedelta(days=35), "15min", False),
+         ("last_full.json", pd.Timedelta(days=35), None, True))
 
 
 def write_views(df, now):
     stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    for name, span, rule in VIEWS:
+    for name, span, rule, ms in VIEWS:
         keep = df.loc[df.index >= now - span, ["AU", "AL"]].sort_index()
         if rule:
             keep = keep.resample(rule).mean().dropna()
         doc = {"generated_utc": stamp,
-               "t": [t.strftime("%Y-%m-%dT%H:%M:%SZ") for t in keep.index],
                "au": [round(v, 1) for v in keep["AU"]],
                "al": [round(v, 1) for v in keep["AL"]]}
+        if ms:
+            doc["tms"] = [int(t.value // 10**6) for t in keep.index]
+        else:
+            doc["t"] = [t.strftime("%Y-%m-%dT%H:%M:%SZ") for t in keep.index]
         tmp = OUT.parent / (name + ".tmp")
         tmp.write_text(json.dumps(doc))
         tmp.replace(OUT.parent / name)

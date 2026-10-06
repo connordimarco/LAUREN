@@ -12,6 +12,7 @@ Usage: venv/bin/python archive_grids.py [--src DIR] [--dst DIR]
 """
 import argparse
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,9 @@ import swmf_datafile as swmf
 SRC = Path("/data/tuija/cdimarco/LAUREN/realtime-geodgp")
 DST = Path(__file__).resolve().parent / "grid_archive"
 LAT_MIN = 30.0
+# GeoDGP filename stamps run +60 min ahead of wind-valid time — see the
+# GEODGP_STAMP_OFFSET note in run_aual_tick.py. npz names use TRUE valid time.
+STAMP_OFFSET_MIN = 60
 RETENTION_DAYS = 1     # short working buffer; grids are reproducible on
                        # Pleiades from MIDL (realtime L1 ~= definitive), so
                        # only aual events + groundmag dumps archive forever
@@ -28,6 +32,8 @@ RETENTION_DAYS = 1     # short working buffer; grids are reproducible on
 
 def archive_one(path, dst_root):
     stamp = path.name.split("_")[1]          # deltaB_YYYYMMDDHHMMSS_real4.out
+    stamp = (datetime.strptime(stamp, "%Y%m%d%H%M%S")
+             - timedelta(minutes=STAMP_OFFSET_MIN)).strftime("%Y%m%d%H%M%S")
     day_dir = dst_root / stamp[:8]
     out = day_dir / f"dBN_{stamp}.npz"
     if out.exists():
