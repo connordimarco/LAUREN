@@ -5,7 +5,7 @@ machine-learning approach to predicting the AU and AL auroral indices in
 real time.
 
 LAUREN corrects GeoDGP's realtime ΔB grid predictions into Kyoto-style
-AU/AL using a LightGBM model trained on 20 years (2005–2022) of GeoDGP
+AU/AL using a LightGBM model trained on 18 years (2005–2022) of GeoDGP
 reruns driven by MIDL solar wind. Validated fully prospectively on
 2023–2024 (solar max, Gannon storm included): **r(AL) = 0.888 / RMSE
 71 nT, r(AU) = 0.884 / 38 nT**. Because the solar wind is measured at L1
